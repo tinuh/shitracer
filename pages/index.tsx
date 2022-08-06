@@ -11,7 +11,7 @@ export default function Home() {
       <div className="container px-8 py-8">
         <h1 className="text-3xl">next-tailwind-starter <span className="text-lg text-gray-400">v1</span></h1>
         <p className="text-md">
-          by <a href="https://github.com/linkai101" className="font-bold text-blue-500 hover:underline" target="_blank">@linkai101</a>
+          by <a href="https://github.com/linkai101" className="font-bold text-blue-500 hover:underline" target="_blank" rel="noreferrer">@linkai101</a>
         </p>
 
         <p className="mt-4">
