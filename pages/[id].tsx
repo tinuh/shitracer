@@ -31,7 +31,7 @@ export default function Home() {
   const [name, setName] = useState<string>("Guest");
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [inputValue, setInputValue] = useState<string>("");
-  const [prompt, setPrompt] = useState('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.');
+  const [prompt, setPrompt] = useState('Stupid shit that no one needs.');
   
   //type mapping
   const [map, setMap] = useState(["a", "b", "c", "d", "e","f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]);

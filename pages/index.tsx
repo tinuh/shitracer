@@ -34,7 +34,7 @@ export default function Home() {
   const [name, setName] = useState<string>("Host");
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [inputValue, setInputValue] = useState<string>("");
-  const [prompt, setPrompt] = useState("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.");
+  const [prompt, setPrompt] = useState("Stupid shit that no one needs.");
   const [usernameModalOpen, setUsernameModalOpen] = useState(true);
   
   //type mapping
