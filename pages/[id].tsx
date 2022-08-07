@@ -1,22 +1,34 @@
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import Keyboard from '../components/Keyboard';
 import { Button, Progress } from 'react-daisyui';
-import { useEffect, createRef, useState } from 'react';
-import generateKeyboard from '../functions/generateKeyboard';
+import { useEffect, createRef, useState, useRef } from 'react';
+import { DataConnection } from 'peerjs';
+import WinnerView from '../components/WinnerView';
 
 interface Racers {
-  [peerId: string]: {
-    name: string,
-    currentIndex: number,
-    wpm: number,
-    accuracy?: number
-  }  
+  [peerId: string]: Racer
+}
+
+interface Racer {
+  name: string,
+  currentIndex: number,
+  wpm?: number,
+  accuracy?: number
+}
+
+interface Data {
+  type: string,
+  content: any
 }
 
 export default function Home() {
+  const router = useRouter();
+
   const inputRef = createRef<HTMLInputElement>();
 
   //typing functionality
+  const [name, setName] = useState<string>("Guest");
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [inputValue, setInputValue] = useState<string>("");
   const [prompt, setPrompt] = useState('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.');
@@ -25,42 +37,66 @@ export default function Home() {
   const [map, setMap] = useState(["a", "b", "c", "d", "e","f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]);
   const [scrambledMap, setScrambledMap] = useState<string[]>([]);
   const [latestChar, setLatestChar] = useState<string>("");
+
+  //life cycle
+  const [gamePhase, setGamePhase] = useState<string>("waiting"); // waiting, inProgress, end
   
   //peer js stuff
-  const [peerImp, setPeerImp] = useState(true);
-  const [racers, setRacers] = useState<Racers>({});
+  const [racers, _setRacers] = useState<Racers>({});
+  const racersRef = useRef(racers);
+  const setRacers = value => {
+    racersRef.current = value;
+    _setRacers(value);
+  }
 
-  const newLayout = [];
+  // const [peerImp, setPeerImp] = useState(true);
+  // const newLayout = [];
+
+  // p2p states
+  const [peerId, setPeerId] = useState<string>();
+  const [connRef, setConnRef] = useState<DataConnection>();
 
   useEffect(() => {
-    setScrambledMap(generateKeyboard());
-
-    //import peerjs
-    const fn = async () => {
-      const PeerJs = (await import("peerjs")).default;
-
-      const peer = new PeerJs();
-      peer.on('open', (id) => {
-        console.log(id);
+    import('peerjs').then(({ default: Peer }) => {
+      const peer = new Peer({
+        host: "0.peerjs.com",
+        port: 443,
+        path: "/",
+        pingInterval: 5000,
       });
 
-      peer.on("connection", async (conn) => {
-        console.log("Connected to peer: ", conn.peer);
-  
-        // conn.on("open", () => {
-        //   console.log(metaData);
-        //   conn.send(metaData);
-        // });
-  
-        // conn.on("data", (data) => {
-        //   console.log("Received", data);
-        //   onData(data);
-        // });
-      });
+      peer.on('open', () => {
+        setPeerId(peer.id);
+        console.log(`Peer opened! (${peer.id})`);
 
-    };
-    
-    fn();
+        const conn = peer.connect(router.query.id as string);
+
+        conn.on('open', () => {
+          setConnRef(conn);
+          console.log('Connected!');
+        });
+
+        conn.on('data', (data:Data) => {
+          const { type, content } = data;
+          console.log(`Incoming data!`);
+
+          switch (type) {
+            case "mapping":
+              setScrambledMap(content);
+
+              conn.send({ type: "racerUpdate", content: { name, currentIndex }});
+              break;
+            case "racerBroadcast":
+              setRacers(content);
+              console.log(content)
+              break;
+            case "gamePhase":
+              setGamePhase(content);
+          }
+        });
+      });
+    });
+
     focus();
 
     window.addEventListener("beforeunload", (ev) => 
@@ -68,7 +104,12 @@ export default function Home() {
       ev.preventDefault();
       return ev.returnValue = 'Are you sure you want to close?';
     });
-  }, []);
+  }, [router.query.id]);
+
+  useEffect(() => {
+    if (!connRef) return;
+    connRef.send({ type: "racerUpdate", content: { name, currentIndex } });
+  }, [currentIndex]);
 
   const focus = () => {
     inputRef.current.focus();
@@ -83,9 +124,6 @@ export default function Home() {
     if (capital) {
       newValue = newValue.toUpperCase();
     }
-    // for(let i = 0; i < map.length; i++) {
-    //   if(value === map[i]) newValue = scrambledMap[i];
-    // }
 
 
     setLatestChar(e.target.value);
@@ -112,13 +150,25 @@ export default function Home() {
           <span className="mr-2.5">💩</span>Shitracer
         </h1>
 
-        <div className="mt-4">
-          You
-          <Progress
-            className="progress-accent"
-            value={currentIndex}
-            max={prompt.length}
-          />
+        <div className="py-8 flex flex-col items-end gap-1">
+          <div className="flex items-center gap-4 mt-4">
+            <span>{name} (me)</span>
+            <Progress
+              className="w-[70vw] progress-accent"
+              value={currentIndex}
+              max={prompt.length}
+            />
+          </div>
+          {Object.keys(racersRef.current).map((key,i) =>
+            <div className="flex items-center gap-4 mt-4" key={key}>
+              <span>{racersRef.current[key].name}</span>
+              <Progress
+                className="w-[70vw] progress-accent"
+                value={racersRef.current[key].currentIndex}
+                max={prompt.length}
+              />
+            </div>
+          )}
         </div>
 
         <p className="mt-4 text-lg ">
@@ -137,7 +187,7 @@ export default function Home() {
 
 
         
-        <Keyboard currentCharacter={'a'} isCorrect={false} originalMap={map} scrambledMap={scrambledMap} />
+        {/* {gamePhase === 'end' ? <WinnerView /> : <Keyboard currentCharacter={'a'} isCorrect={false} originalMap={map} scrambledMap={scrambledMap} />} */}
 
         <div className="w-full flex justify-center">
           <Button className="cursor-pointer btn-success mt-4 z-10 absolute">
