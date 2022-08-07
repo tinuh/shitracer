@@ -257,11 +257,11 @@ export default function Home() {
 
         {gamePhase === 'end' ? <WinnerView winnerName={undefined} wpm={undefined} /> : <Keyboard currentCharacter={latestChar} isCorrect={false} originalMap={map} scrambledMap={scrambledMap} />}
 
-        <div className="w-full flex justify-center">
+        {/* <div className="w-full flex justify-center">
           <Button className="cursor-pointer btn-success mt-4 z-10 absolute" onClick={() => startGame()}>
             Start
           </Button>
-        </div>
+        </div> */}
 
         <input
           className="opacity-0 absolute top-0 left-0 w-full h-full p-4 bg-stone-700 resize-none focus:outline-none text-2xl text-stone-400 font-mono"
