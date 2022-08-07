@@ -1,11 +1,11 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Keyboard from '../components/Keyboard';
-import { Button, Progress } from 'react-daisyui';
+import { Button, Progress, Modal } from 'react-daisyui';
 import { useEffect, createRef, useState, useRef } from 'react';
 import { DataConnection } from 'peerjs';
 import WinnerView from '../components/WinnerView';
-
+import toast, {Toaster} from "react-hot-toast";
 interface Racers {
   [peerId: string]: Racer
 }
@@ -37,6 +37,7 @@ export default function Home() {
   const [map, setMap] = useState(["a", "b", "c", "d", "e","f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]);
   const [scrambledMap, setScrambledMap] = useState<string[]>([]);
   const [latestChar, setLatestChar] = useState<string>("");
+  const [usernameModalOpen, setUsernameModalOpen] = useState(true);
 
   //life cycle
   const [gamePhase, setGamePhase] = useState<string>("waiting"); // waiting, inProgress, end
@@ -144,26 +145,26 @@ export default function Home() {
         <title>Shitracer</title>
         <meta name="description" content="typeracer but shit" />
       </Head>
-
+      
       <main className="px-4 pb-4 pt-12 container max-w-4xl">
         <h1 className="text-3xl font-extrabold">
           <span className="mr-2.5">💩</span>Shitracer
         </h1>
 
-        <div className="py-8 flex flex-col items-end gap-1">
+        <div className="py-8 flex flex-col gap-1 flex-nowrap">
           <div className="flex items-center gap-4 mt-4">
-            <span>{name} (me)</span>
+            <span className="w-8">{name} (me)</span>
             <Progress
-              className="w-[70vw] progress-accent"
+              className="flex-grow progress-accent"
               value={currentIndex}
               max={prompt.length}
             />
           </div>
           {Object.keys(racersRef.current).map((key,i) =>
             <div className="flex items-center gap-4 mt-4" key={key}>
-              <span>{racersRef.current[key].name}</span>
+              <span className='w-8'>{racersRef.current[key].name}</span>
               <Progress
-                className="w-[70vw] progress-accent"
+                className="flex-grow progress-accent"
                 value={racersRef.current[key].currentIndex}
                 max={prompt.length}
               />
@@ -185,9 +186,35 @@ export default function Home() {
         }}>Start</Button>
       </div> */}
 
-
+      <Modal open={usernameModalOpen} className="bg-theme-surface">
+        <Modal.Header>Please enter your name!</Modal.Header>
+        <Modal.Body className="mt-4">
+          <input
+            className="focus:outline-none bg-slate-900 text-white rounded p-3 "
+            //ref={usernameRef}
+            onChange={(e) => {
+              setName(e.target.value);
+            }}
+          ></input>
+        </Modal.Body>
+        <Modal.Actions>
+          <Button
+            className={`${!name ? "btn-disabled" : ""}`}
+            onClick={() => {
+              if (name) {
+                if (name.trim() !== "") {
+                  setName(name);
+                  setUsernameModalOpen(false);
+                }
+              }
+            }}
+          >
+            Submit
+          </Button>
+        </Modal.Actions>
+      </Modal>
         
-        {/* {gamePhase === 'end' ? <WinnerView /> : <Keyboard currentCharacter={'a'} isCorrect={false} originalMap={map} scrambledMap={scrambledMap} />} */}
+        {gamePhase === 'end' ? <WinnerView winnerName={undefined} wpm={undefined} /> : <Keyboard currentCharacter={'a'} isCorrect={false} originalMap={map} scrambledMap={scrambledMap} />}
 
         <div className="w-full flex justify-center">
           <Button className="cursor-pointer btn-success mt-4 z-10 absolute">
@@ -206,6 +233,7 @@ export default function Home() {
           value={inputValue}
           onChange={(e) => onType(e)}
         />
+        <Toaster/>
       </main>
     </>
   );

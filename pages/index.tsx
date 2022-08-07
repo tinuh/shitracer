@@ -1,10 +1,11 @@
 import Head from 'next/head';
 import Keyboard from '../components/Keyboard';
-import { Button, Progress } from 'react-daisyui';
+import { Button, Modal, Progress } from 'react-daisyui';
 import { useEffect, createRef, useState, useRef } from 'react';
 import generateKeyboard from '../functions/generateKeyboard';
 import { DataConnection } from 'peerjs';
 import WinnerView from '../components/WinnerView';
+import toast, {Toaster} from "react-hot-toast";
 
 interface Racers {
   [peerId: string]: Racer
@@ -33,7 +34,8 @@ export default function Home() {
   const [name, setName] = useState<string>("Host");
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [inputValue, setInputValue] = useState<string>("");
-  const [prompt, setPrompt] = useState('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.');
+  const [prompt, setPrompt] = useState("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.");
+  const [usernameModalOpen, setUsernameModalOpen] = useState(true);
   
   //type mapping
   const [map, setMap] = useState(["a", "b", "c", "d", "e","f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]);
@@ -120,7 +122,14 @@ export default function Home() {
     });
 
     // check if game end
-    // if ()
+    if (!Object.keys(racersRef.current).map((key,i) => racersRef.current[key].currentIndex >= prompt.length).some(a => a === false)) {
+      Object.keys(connsRef.current).forEach((key,i) => {
+        const conn = connsRef.current[key];
+        if (!conn.open) return;
+        
+        conn.send({ type: "gamePhase", content: "end" });
+      });
+    }
   }, [currentIndex, racers]);
 
   function startGame() {
@@ -161,7 +170,12 @@ export default function Home() {
     }
     setInputValue("");
   }
-
+  
+  const copy = () => {
+    let val = `${process.env.NEXT_PUBLIC_URI}/${peerId}`;
+    navigator.clipboard.writeText(val);
+    toast("Link Copied to clipboard!");
+  };
 
   return (
     <>
@@ -170,31 +184,67 @@ export default function Home() {
         <meta name="description" content="typeracer but shit" />
       </Head>
 
+      <Modal open={usernameModalOpen} className="bg-theme-surface">
+        <Modal.Header>Please enter your name!</Modal.Header>
+        <Modal.Body className="mt-4">
+          <input
+            className="focus:outline-none bg-slate-900 text-white rounded p-3 "
+            //ref={usernameRef}
+            onChange={(e) => {
+              setName(e.target.value);
+            }}
+          ></input>
+        </Modal.Body>
+        <Modal.Actions>
+          <Button
+            className={`${!name ? "btn-disabled" : ""}`}
+            onClick={() => {
+              if (name) {
+                if (name.trim() !== "") {
+                  setName(name);
+                  setUsernameModalOpen(false);
+                }
+              }
+            }}
+          >
+            Submit
+          </Button>
+        </Modal.Actions>
+      </Modal>
+      <Toaster/>
       <main className="px-4 pb-4 pt-12 container max-w-4xl">
-        <h1 className="text-3xl font-extrabold">
-          <span className="mr-2.5">💩</span>Shitracer
-        </h1>
-
-        <div className="py-8 flex flex-col items-end gap-1">
+        <div className="flex justify-between">
+          <h1 className="text-3xl font-extrabold">
+            <span className="mr-2.5">💩</span>Shitracer
+          </h1>
+          <Button
+            onClick={copy}
+            className="cursor-pointer btn-primary z-10 text-lg"
+          >
+            Invite Others
+          </Button>
+        </div>
+        <div className="py-8 flex flex-col gap-1">
           <div className="flex items-center gap-4 mt-4">
-            <span>{name} (me)</span>
+            <p className="w-20">{name} (me)</p>
             <Progress
-              className="w-[70vw] progress-accent"
+              className="flex-grow progress-accent"
               value={currentIndex}
               max={prompt.length}
             />
           </div>
           {Object.keys(racersRef.current).map((key,i) =>
             <div className="flex items-center gap-4 mt-4" key={key}>
-              <span>{racersRef.current[key].name}</span>
+              <p className='w-20'>{racersRef.current[key].name}</p>
               <Progress
-                className="w-[70vw] progress-accent"
+                className="flex-grow progress-accent"
                 value={racersRef.current[key].currentIndex}
                 max={prompt.length}
               />
             </div>
           )}
         </div>
+     
 
         <p className="mt-4 text-lg ">
           <span className="text-green-500">
