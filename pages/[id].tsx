@@ -4,21 +4,35 @@ import { Button, Progress } from 'react-daisyui';
 import { useEffect, createRef, useState } from 'react';
 import generateKeyboard from '../functions/generateKeyboard';
 
+interface Racers {
+  [peerId: string]: {
+    name: string,
+    currentIndex: number,
+    wpm: number,
+    accuracy?: number
+  }  
+}
+
 export default function Home() {
   const inputRef = createRef<HTMLInputElement>();
 
+  //typing functionality
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [inputValue, setInputValue] = useState<string>("");
+  const [prompt, setPrompt] = useState('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.');
+  
+  //type mapping
   const [map, setMap] = useState(["a", "b", "c", "d", "e","f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]);
   const [scrambledMap, setScrambledMap] = useState<string[]>([]);
-  const [peerImp, setPeerImp] = useState(true);
-  const [prompt, setPrompt] = useState('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce ultrices, ipsum sed cursus rhoncus, leo nulla eleifend lacus, a vehicula felis lacus eu ipsum.');
   const [latestChar, setLatestChar] = useState<string>("");
+  
+  //peer js stuff
+  const [peerImp, setPeerImp] = useState(true);
+  const [racers, setRacers] = useState<Racers>({});
 
   const newLayout = [];
 
   useEffect(() => {
-
     setScrambledMap(generateKeyboard());
 
     //import peerjs
@@ -30,7 +44,22 @@ export default function Home() {
         console.log(id);
       });
 
+      peer.on("connection", async (conn) => {
+        console.log("Connected to peer: ", conn.peer);
+  
+        // conn.on("open", () => {
+        //   console.log(metaData);
+        //   conn.send(metaData);
+        // });
+  
+        // conn.on("data", (data) => {
+        //   console.log("Received", data);
+        //   onData(data);
+        // });
+      });
+
     };
+    
     fn();
     focus();
 
@@ -47,16 +76,23 @@ export default function Home() {
   
   function onType(e) {
     let value = e.target.value;
-    let newValue: string;
-    for(let i = 0; i < map.length; i++) {
-      if(value === map[i]) newValue = scrambledMap[i];
+    let alpha = /[a-zA-Z]/.test(value);
+    let capital = value === value.toUpperCase();
+    value = value.toLowerCase();
+    let newValue = scrambledMap[map.indexOf(value)] || "";
+    if (capital) {
+      newValue = newValue.toUpperCase();
     }
+    // for(let i = 0; i < map.length; i++) {
+    //   if(value === map[i]) newValue = scrambledMap[i];
+    // }
+
 
     setLatestChar(e.target.value);
 
     console.log(value, newValue, currentIndex);
 
-    if (value === prompt.charAt(currentIndex)){ 
+    if ((alpha ? newValue : value) === prompt.charAt(currentIndex)){ 
       console.log('correct');
       setCurrentIndex(a => a+1);
     }
@@ -89,7 +125,7 @@ export default function Home() {
           <span className="text-green-500">
             {prompt.substring(0, currentIndex)}
           </span>
-          <span className="h-4 w-1 bg-white inline-block animate-pulse-full opacity-0"></span>
+          <span className="h-4 w-1 bg-white inline-block animate-pulse-full opacity-0 rounded-sm"></span>
           <span>{prompt.substring(currentIndex)}</span>
         </p>
 
@@ -99,43 +135,10 @@ export default function Home() {
         }}>Start</Button>
       </div> */}
 
-        <div
-          className="flex justify-center gap-1 my-1 w-full"
-          style={{ marginTop: "2rem" }}
-        >
-          <kbd className="kbd">q</kbd>
-          <kbd className="kbd">w</kbd>
-          <kbd className="kbd">e</kbd>
-          <kbd className="kbd">r</kbd>
-          <kbd className="kbd">t</kbd>
-          <kbd className="kbd">y</kbd>
-          <kbd className="kbd">u</kbd>
-          <kbd className="kbd">i</kbd>
-          <kbd className="kbd">o</kbd>
-          <kbd className="kbd">p</kbd>
-        </div>
-        <div className="flex justify-center gap-1 my-1 w-full">
-          <kbd className="kbd">a</kbd>
-          <kbd className="kbd">s</kbd>
-          <kbd className="kbd">d</kbd>
-          <kbd className="kbd">f</kbd>
-          <kbd className="kbd">g</kbd>
-          <kbd className="kbd">h</kbd>
-          <kbd className="kbd">j</kbd>
-          <kbd className="kbd">k</kbd>
-          <kbd className="kbd">l</kbd>
-        </div>
-        <div className="flex justify-center gap-1 my-1 w-full">
-          <kbd className="kbd">z</kbd>
-          <kbd className="kbd">x</kbd>
-          <kbd className="kbd">c</kbd>
-          <kbd className="kbd">v</kbd>
-          <kbd className="kbd">b</kbd>
-          <kbd className="kbd">n</kbd>
-          <kbd className="kbd">m</kbd>
-          <kbd className="kbd">/</kbd>
-        </div>
-        <Keyboard originalMap={map} scrambledMap={scrambledMap} />
+
+        
+        <Keyboard currentCharacter={'a'} isCorrect={false} originalMap={map} scrambledMap={scrambledMap} />
+
         <div className="w-full flex justify-center">
           <Button className="cursor-pointer btn-success mt-4 z-10 absolute">
             Copy Link
@@ -145,6 +148,10 @@ export default function Home() {
         <input
           className="opacity-0 absolute top-0 left-0 w-full h-full p-4 bg-stone-700 resize-none focus:outline-none text-2xl text-stone-400 font-mono"
           spellCheck="false"
+          autoCapitalize="off"
+          autoFocus={true}
+          autoCorrect="off"
+          autoComplete="off"
           ref={inputRef}
           value={inputValue}
           onChange={(e) => onType(e)}
