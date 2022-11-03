@@ -9,7 +9,7 @@ interface WinnerViewProps {
 const WinnerView:React.FC<WinnerViewProps> = ({ winnerName, wpm }) => {
     return (
         <div className="w-full flex justify-center">
-            <h1 className="">{winnerName} won with {wpm} WPM</h1>
+            <h1 className="">{winnerName} won with {wpm} WPM LOL</h1>
         </div>
     )
 }
